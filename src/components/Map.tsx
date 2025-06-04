@@ -38,8 +38,10 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos }, ref) => {
 
       const marker = L.marker([tecnico.lat, tecnico.lon], { icon: icono })
         .addTo(mapRef.current!)
-        .bindPopup(`<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}` +
-  (tecnico.eta !== undefined ? `<br>ETA: ${tecnico.eta} min` : ''));
+        .bindPopup(
+          `<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}` +
+          (tecnico.eta !== undefined ? `<br>ETA: ${tecnico.eta} min` : '')
+        );
 
       markerRefs.current[tecnico.nombre] = marker;
     });
