@@ -27,17 +27,31 @@ export default function PanelTecnicos({ tecnicos, onCentrar }: Props) {
       .includes(busqueda.toLowerCase())
   );
 
+  const limpiarBusqueda = () => {
+    setBusqueda('');
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-gray-700">Técnicos disponibles</h2>
 
-      <input
-        type="text"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        placeholder="Buscar por nombre o especialidad"
-        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-      />
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o especialidad"
+          className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
+        />
+        {busqueda && (
+          <button
+            onClick={limpiarBusqueda}
+            className="px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-md"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
 
       {tecnicosFiltrados.length === 0 ? (
         <p className="text-gray-500 text-sm">No se encontraron técnicos.</p>
