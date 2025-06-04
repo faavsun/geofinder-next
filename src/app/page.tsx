@@ -4,11 +4,33 @@ import tecnicosOriginales from '@/data/tecnicos.json';
 import Map, { MapHandle, Tecnico } from '../components/Map';
 import PanelTecnicos from '../components/PanelTecnicos';
 
-// Asegura que todos los técnicos tengan 'eta' incluso si el JSON no lo trae
-const tecnicosConETA: Tecnico[] = tecnicosOriginales.map((t) => ({
-  ...t,
-  eta: t.eta ?? Math.floor(Math.random() * 10) + 5,
-}));
+// Punto de referencia fijo
+const puntoReferencia = { lat: -36.83, lon: -73.06 };
+
+// Velocidad realista urbana en km/h
+const velocidadKmh = 30;
+
+// Fórmula de distancia (Haversine)
+function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Calcula ETA con mínimo visual
+const tecnicosConETA: Tecnico[] = tecnicosOriginales.map((t) => {
+  const distanciaKm = calcularDistanciaKm(t.lat, t.lon, puntoReferencia.lat, puntoReferencia.lon);
+  const eta = Math.max(6, Math.round((distanciaKm / velocidadKmh) * 60)); // mínimo 6 minutos
+  return { ...t, eta };
+});
+
 
 export default function PanelTecnicosPage() {
   const mapRef = useRef<MapHandle>(null);
