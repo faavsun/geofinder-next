@@ -53,7 +53,7 @@ export default function PerfilTecnicoPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <a href="/" className="text-sm text-gray-600 hover:underline">← Volver al mapa</a>
+        <a href="/panel" className="text-sm text-gray-600 hover:underline">← Volver al mapa</a>
 
         <div className="bg-white shadow-md rounded-xl p-6 mt-4 flex items-center gap-4">
           <div className="w-16 h-16 bg-gray-200 rounded-full" />

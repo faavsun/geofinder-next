@@ -10,8 +10,8 @@ export interface Tecnico {
   lat: number;
   lon: number;
   eta?: number;
-  tiempoTrabajoMin?: number; 
-  etaTotal?: number; 
+  tiempoTrabajoMin?: number;
+  etaTotal?: number;
 }
 
 interface MapProps {
@@ -26,37 +26,30 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos }, ref) => {
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
-  // Punto de referencia fijo
-  const puntoReferencia = { lat: -36.83, lon: -73.06 };
-
   useEffect(() => {
-    mapRef.current = L.map('map').setView([-36.82, -73.05], 13);
+    // Si ya existe un mapa, elimínalo antes de crear uno nuevo
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const map = L.map('map').setView([-36.82, -73.05], 13);
+    mapRef.current = map;
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
-    }).addTo(mapRef.current);
+    }).addTo(map);
 
-    // Marcador del punto de referencia
-    const iconoReferencia = L.icon({
-      iconUrl: '/icons/pin.png', // asegúrate de tener este ícono en public/icons
-      iconSize: [30, 30],
-    });
-
-    L.marker([puntoReferencia.lat, puntoReferencia.lon], { icon: iconoReferencia })
-      .addTo(mapRef.current)
-      .bindPopup('<strong>Punto de referencia</strong><br>Ubicación objetivo');
-
-    // Marcadores de técnicos
     tecnicos.forEach((tecnico) => {
       const icono = L.icon({
-        iconUrl: '/icons/tecnico.png', // asegúrate de tener este ícono también
+        iconUrl: '/icons/tecnico.png',
         iconSize: [30, 30],
       });
 
       const marker = L.marker([tecnico.lat, tecnico.lon], { icon: icono })
-        .addTo(mapRef.current!)
+        .addTo(map)
         .bindPopup(
-          `<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}` +
-          (tecnico.eta !== undefined ? `<br>ETA: ${tecnico.eta} min` : '')
+          `<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}<br>ETA: ${tecnico.eta} min`
         );
 
       markerRefs.current[tecnico.nombre] = marker;
