@@ -27,8 +27,17 @@ function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: num
 // Calcula ETA con mínimo visual
 const tecnicosConETA: Tecnico[] = tecnicosOriginales.map((t) => {
   const distanciaKm = calcularDistanciaKm(t.lat, t.lon, puntoReferencia.lat, puntoReferencia.lon);
-  const eta = Math.max(6, Math.round((distanciaKm / velocidadKmh) * 60)); // mínimo 6 minutos
-  return { ...t, eta };
+  const eta = Math.max(6, Math.round((distanciaKm / velocidadKmh) * 60));
+
+  const tiempoTrabajoMin = 15; // puedes variar por técnico luego
+  const etaTotal = eta + tiempoTrabajoMin;
+
+  return {
+    ...t,
+    eta,
+    tiempoTrabajoMin,
+    etaTotal,
+  };
 });
 
 

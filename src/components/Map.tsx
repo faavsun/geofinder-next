@@ -10,6 +10,8 @@ export interface Tecnico {
   lat: number;
   lon: number;
   eta?: number;
+  tiempoTrabajoMin?: number; 
+  etaTotal?: number; 
 }
 
 interface MapProps {
