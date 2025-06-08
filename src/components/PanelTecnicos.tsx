@@ -70,7 +70,9 @@ export default function PanelTecnicos({ tecnicos, onCentrar }: Props) {
               {tecnico.estado.charAt(0).toUpperCase() + tecnico.estado.slice(1)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              {tecnico.eta !== undefined ? `ETA: ${tecnico.eta} min` : 'ETA no disponible'}
+              ETA desplazamiento: {tecnico.eta} min<br />
+              Tiempo de trabajo: {tecnico.tiempoTrabajoMin} min<br />
+              <strong>ETA total: {tecnico.etaTotal} min</strong>
             </p>
           </div>
         ))
