@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
 import { Tecnico } from './Map';
+import Link from 'next/link';
 
 interface Props {
   tecnicos: Tecnico[];
@@ -8,8 +8,6 @@ interface Props {
 }
 
 export default function PanelTecnicos({ tecnicos, onCentrar }: Props) {
-  const [busqueda, setBusqueda] = useState('');
-
   const getEstadoColor = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'disponible':
@@ -21,62 +19,52 @@ export default function PanelTecnicos({ tecnicos, onCentrar }: Props) {
     }
   };
 
-  const tecnicosFiltrados = tecnicos.filter((tecnico) =>
-    `${tecnico.nombre} ${tecnico.especialidad}`
+  const slugify = (text: string) =>
+    text
       .toLowerCase()
-      .includes(busqueda.toLowerCase())
-  );
-
-  const limpiarBusqueda = () => {
-    setBusqueda('');
-  };
+      .normalize('NFD') // quita tildes
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-');
 
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-gray-700">Técnicos disponibles</h2>
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre o especialidad"
-          className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-        />
-        {busqueda && (
-          <button
-            onClick={limpiarBusqueda}
-            className="px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-md"
-          >
-            Limpiar
-          </button>
-        )}
-      </div>
+      {tecnicos.map((tecnico) => {
+        const slug = slugify(tecnico.nombre);
 
-      {tecnicosFiltrados.length === 0 ? (
-        <p className="text-gray-500 text-sm">No se encontraron técnicos.</p>
-      ) : (
-        tecnicosFiltrados.map((tecnico) => (
-          <div
+        return (
+          <Link
             key={tecnico.nombre}
-            className="bg-white rounded-2xl shadow p-4 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow duration-200"
-            onClick={() => onCentrar(tecnico.nombre)}
+            href={`/tecnicos/${encodeURIComponent(slug)}`}
+            passHref
           >
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-lg">{tecnico.nombre}</h3>
+            <div
+              className="bg-white rounded-2xl shadow p-4 border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+              onClick={(e) => {
+                e.stopPropagation(); // evitar doble click si hay navegación y centrado
+                onCentrar(tecnico.nombre);
+              }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-semibold text-lg">{tecnico.nombre}</h3>
+              </div>
+
+              <p className="text-gray-600">{tecnico.especialidad}</p>
+
+              <p className={`font-medium ${getEstadoColor(tecnico.estado)}`}>
+                {tecnico.estado.charAt(0).toUpperCase() + tecnico.estado.slice(1)}
+              </p>
+
+              <p className="text-sm text-gray-500 mt-1">
+                ETA desplazamiento: {tecnico.eta} min<br />
+                Tiempo de trabajo: {tecnico.tiempoTrabajoMin} min<br />
+                <strong>ETA total: {tecnico.etaTotal} min</strong>
+              </p>
             </div>
-            <p className="text-gray-600">{tecnico.especialidad}</p>
-            <p className={`font-medium ${getEstadoColor(tecnico.estado)}`}>
-              {tecnico.estado.charAt(0).toUpperCase() + tecnico.estado.slice(1)}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              ETA desplazamiento: {tecnico.eta} min<br />
-              Tiempo de trabajo: {tecnico.tiempoTrabajoMin} min<br />
-              <strong>ETA total: {tecnico.etaTotal} min</strong>
-            </p>
-          </div>
-        ))
-      )}
+          </Link>
+        );
+      })}
     </div>
   );
 }
