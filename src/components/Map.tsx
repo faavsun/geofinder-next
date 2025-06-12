@@ -30,37 +30,34 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos }, ref) => {
   const puntoReferencia = { lat: -36.83, lon: -73.06 };
 
   useEffect(() => {
-    mapRef.current = L.map('map').setView([-36.82, -73.05], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(mapRef.current);
+  if (typeof window === 'undefined') return;
+  // Si ya hay un mapa montado, elimínalo antes de volver a crear
+  if (mapRef.current) {
+    mapRef.current.remove();
+    mapRef.current = null;
+  }
 
-    // Marcador del punto de referencia
-    const iconoReferencia = L.icon({
-      iconUrl: '/icons/pin.png', // asegúrate de tener este ícono en public/icons
+  const map = L.map('map').setView([-36.82, -73.05], 13);
+  mapRef.current = map;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+  }).addTo(map);
+
+  tecnicos.forEach((tecnico) => {
+    const icono = L.icon({
+      iconUrl: '/icons/tecnico.png',
       iconSize: [30, 30],
     });
 
-    L.marker([puntoReferencia.lat, puntoReferencia.lon], { icon: iconoReferencia })
-      .addTo(mapRef.current)
-      .bindPopup('<strong>Punto de referencia</strong><br>Ubicación objetivo');
+    const marker = L.marker([tecnico.lat, tecnico.lon], { icon: icono })
+      .addTo(map)
+      .bindPopup(
+        `<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}<br>ETA: ${tecnico.eta} min`
+      );
 
-    // Marcadores de técnicos
-    tecnicos.forEach((tecnico) => {
-      const icono = L.icon({
-        iconUrl: '/icons/tecnico.png', // asegúrate de tener este ícono también
-        iconSize: [30, 30],
-      });
-
-      const marker = L.marker([tecnico.lat, tecnico.lon], { icon: icono })
-        .addTo(mapRef.current!)
-        .bindPopup(
-          `<strong>${tecnico.nombre}</strong><br>${tecnico.especialidad}` +
-          (tecnico.eta !== undefined ? `<br>ETA: ${tecnico.eta} min` : '')
-        );
-
-      markerRefs.current[tecnico.nombre] = marker;
-    });
+    markerRefs.current[tecnico.nombre] = marker;
+  });
   }, [tecnicos]);
 
   useImperativeHandle(ref, () => ({
