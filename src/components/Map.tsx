@@ -10,8 +10,8 @@ export interface Tecnico {
   lat: number;
   lon: number;
   eta?: number;
-  tiempoTrabajoMin?: number; 
-  etaTotal?: number; 
+  tiempoTrabajoMin?: number;
+  etaTotal?: number;
 }
 
 interface MapProps {
@@ -25,9 +25,6 @@ export type MapHandle = {
 const Map = forwardRef<MapHandle, MapProps>(({ tecnicos }, ref) => {
   const mapRef = useRef<L.Map | null>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
-
-  // Punto de referencia fijo
-  const puntoReferencia = { lat: -36.83, lon: -73.06 };
 
   useEffect(() => {
   if (typeof window === 'undefined') return;
