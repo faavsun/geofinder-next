@@ -1,7 +1,7 @@
 'use client';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import tecnicos from '@/data/tecnicos.json';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { MapPin } from 'lucide-react';
 
 const puntoReferencia = { lat: -36.83, lon: -73.06 };
@@ -20,48 +20,59 @@ function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD') // Elimina tildes
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '-');
-}
-
 export default function PerfilTecnicoPage() {
   const { nombre } = useParams();
+  const [tecnico, setTecnico] = useState<any>(null);
   const [tab, setTab] = useState<'resumen' | 'historial' | 'estadisticas'>('resumen');
 
-  const tecnicoOriginal = tecnicos.find(
-    (t) => slugify(t.nombre) === (nombre as string)
-  );
+  useEffect(() => {
+    const fetchTecnico = async () => {
+      const { data, error } = await supabase
+        .from('tecnicos')
+        .select('*')
+        .eq('slug', nombre)
+        .single();
 
-  if (!tecnicoOriginal) {
+      if (error) {
+        console.error('Error al obtener técnico:', error);
+      } else {
+        setTecnico(data);
+      }
+    };
+
+    if (nombre) {
+      fetchTecnico();
+    }
+  }, [nombre]);
+
+  if (!tecnico) {
     return <div className="p-6 text-red-600">Técnico no encontrado</div>;
   }
 
   const distancia = calcularDistanciaKm(
-    tecnicoOriginal.lat,
-    tecnicoOriginal.lon,
+    tecnico.lat,
+    tecnico.lon,
     puntoReferencia.lat,
     puntoReferencia.lon
   );
   const eta = Math.max(6, Math.round((distancia / velocidadKmh) * 60));
-  const tiempoTrabajoMin = 15;
+  const tiempoTrabajoMin = tecnico.tiempo_trabajo ?? 15;
   const etaTotal = eta + tiempoTrabajoMin;
 
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <a href="/panel-tecnicos" className="text-sm text-gray-600 hover:underline">← Volver al mapa</a>
+        <a href="/panel-tecnicos" className="text-sm text-gray-600 hover:underline">
+          ← Volver al mapa
+        </a>
 
         <div className="bg-white shadow-md rounded-xl p-6 mt-4 flex items-center gap-4">
           <div className="w-16 h-16 bg-gray-200 rounded-full" />
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{tecnicoOriginal.nombre}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{tecnico.nombre}</h1>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">
-                {tecnicoOriginal.estado}
+                {tecnico.estado}
               </span>
               <span>203 servicios completados</span>
               <span>Miembro desde 19/8/2021</span>
@@ -88,7 +99,7 @@ export default function PerfilTecnicoPage() {
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="font-semibold text-lg mb-4">Información General</h2>
               <div className="text-sm space-y-2 text-gray-700">
-                <p><strong>Especialidad:</strong> {tecnicoOriginal.especialidad}</p>
+                <p><strong>Especialidad:</strong> {tecnico.especialidad}</p>
                 <p><strong>Servicios completados:</strong> 203</p>
                 <p><strong>ETA desplazamiento:</strong> {eta} min</p>
                 <p><strong>Tiempo de trabajo estimado:</strong> {tiempoTrabajoMin} min</p>
@@ -102,7 +113,7 @@ export default function PerfilTecnicoPage() {
           <div className="bg-white rounded-xl shadow p-6 mt-6">
             <h2 className="font-semibold text-lg mb-2">Historial de Servicios</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Todos los servicios realizados por {tecnicoOriginal.nombre}
+              Todos los servicios realizados por {tecnico.nombre}
             </p>
             <div className="space-y-4">
               {[1, 2, 3].map((_, i) => (
@@ -112,7 +123,7 @@ export default function PerfilTecnicoPage() {
                 >
                   <div>
                     <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full mr-2">
-                      {tecnicoOriginal.especialidad}
+                      {tecnico.especialidad}
                     </span>
                     <span className="text-xs text-gray-500">5/1/2024</span>
                     <h3 className="font-medium text-gray-800">Servicio #{i + 1}</h3>
