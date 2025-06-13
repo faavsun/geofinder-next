@@ -4,14 +4,14 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export interface Tecnico {
-  id:string;
+  id: string;
   nombre: string;
   especialidad: string;
   estado: string;
   lat: number;
   lon: number;
-  eta?: number;
   tiempoTrabajoMin?: number;
+  eta?: number;
   etaTotal?: number;
 }
 
@@ -39,9 +39,8 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos, clientes }, ref) => {
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
   useEffect(() => {
-    const mapContainer = document.getElementById('map');
-    if (!mapRef.current && mapContainer) {
-      const map = L.map(mapContainer).setView([-36.82, -73.05], 13);
+    if (!mapRef.current) {
+      const map = L.map('map').setView([-36.82, -73.05], 13);
       mapRef.current = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -51,13 +50,11 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos, clientes }, ref) => {
 
     // Limpiar marcadores anteriores
     Object.values(markerRefs.current).forEach((marker) => {
-      if (mapRef.current?.hasLayer(marker)) {
-        mapRef.current.removeLayer(marker);
-      }
+      mapRef.current?.removeLayer(marker);
     });
     markerRefs.current = {};
 
-    // Agregar marcadores de técnicos
+    // Técnicos
     tecnicos.forEach((tecnico) => {
       const icono = L.icon({
         iconUrl: '/icons/tecnico.png',
@@ -73,14 +70,15 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos, clientes }, ref) => {
       markerRefs.current[tecnico.nombre] = marker;
     });
 
-    // Agregar marcadores de clientes
-    clientes.forEach((cliente) => {
-      const iconoCliente = L.icon({
-        iconUrl: '/icons/cliente.png',
-        iconSize: [25, 25],
-      });
+    // Clientes (solo si no están finalizados)
+    clientes
+      .filter((c) => c.estado !== 'finalizado')
+      .forEach((cliente) => {
+        const iconoCliente = L.icon({
+          iconUrl: '/icons/cliente.png',
+          iconSize: [25, 25],
+        });
 
-      if (cliente.lat && cliente.lon) {
         const marker = L.marker([cliente.lat, cliente.lon], { icon: iconoCliente })
           .addTo(mapRef.current!)
           .bindPopup(
@@ -88,15 +86,8 @@ const Map = forwardRef<MapHandle, MapProps>(({ tecnicos, clientes }, ref) => {
           );
 
         markerRefs.current[`cliente-${cliente.id}`] = marker;
-      } else {
-        console.warn(`⚠️ Cliente sin coordenadas válidas: ${cliente.nombre}`, cliente);
-      }
-    });
+      });
 
-    console.log('🗺️ Clientes en el mapa:', clientes);
-    clientes.forEach((c) =>
-      console.log(`📍 ${c.nombre}: lat=${c.lat}, lon=${c.lon}`)
-    );
   }, [tecnicos, clientes]);
 
   useImperativeHandle(ref, () => ({

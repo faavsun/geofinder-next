@@ -3,9 +3,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+const generarSlug = (nombre: string) =>
+  nombre.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '');
+
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [especialidad, setEspecialidad] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -13,13 +22,24 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    const slug = generarSlug(nombre);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/panel-tecnicos'); // o redirigir al login si prefieres
-    }
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+    if (signUpError) return setError(signUpError.message);
+
+    await supabase.from('tecnicos').insert([
+      {
+        email,
+        nombre,
+        especialidad,
+        estado: 'disponible',
+        lat: -36.83,
+        lon: -73.06,
+        slug,
+      }
+    ]);
+
+    router.push('/panel-tecnicos');
   };
 
   return (
@@ -28,28 +48,38 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Crear cuenta</h1>
 
         <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
-            />
-          </div>
-
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            required
+            placeholder="Nombre"
+            className="w-full px-4 py-2 border rounded-md"
+          />
+          <input
+            type="text"
+            value={especialidad}
+            onChange={(e) => setEspecialidad(e.target.value)}
+            required
+            placeholder="Especialidad"
+            className="w-full px-4 py-2 border rounded-md"
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="Correo electrónico"
+            className="w-full px-4 py-2 border rounded-md"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Contraseña"
+            className="w-full px-4 py-2 border rounded-md"
+          />
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button

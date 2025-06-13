@@ -14,11 +14,17 @@ export default function PanelTecnicosPage() {
 
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [rolUsuario, setRolUsuario] = useState<string | null>(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
       const { data: tecnicosData } = await supabase.from('tecnicos').select('*');
       const { data: clientesData } = await supabase.from('clientes').select('*');
+
+      // 🔧 Comparar por email en vez de ID
+      const tecnicoActual = tecnicosData?.find(t => t.email === user?.email);
+      console.log('Rol del usuario:', tecnicoActual?.rol);
+      setRolUsuario(tecnicoActual?.rol || null);
 
       setTecnicos(
         (tecnicosData || []).map((t) => {
@@ -42,41 +48,25 @@ export default function PanelTecnicosPage() {
     mapRef.current?.centrarEnTecnico(nombre);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth/login');
-  };
-
   if (loading) return <p className="p-6">Cargando sesión...</p>;
 
   return (
     <main className="flex flex-col md:flex-row h-screen relative">
-      <div className="absolute top-4 right-6 text-sm text-right z-10">
-        <p className="text-gray-600">Sesión: {user?.email}</p>
-        <button onClick={handleLogout} className="text-blue-600 hover:underline text-sm">
-          Cerrar sesión
-        </button>
-      </div>
-
       <section className="w-full md:w-2/3 p-4">
-        <h1 className="text-2xl font-bold mb-4 flex justify-between items-center">
-          Panel de Técnicos
-          <button onClick={() => router.refresh()} className="text-sm text-blue-600 underline">
-            🔄 Recargar
-          </button>
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Panel de Técnicos</h1>
         <Map ref={mapRef} tecnicos={tecnicos} clientes={clientes} />
       </section>
 
       <aside className="w-full md:w-1/3 bg-gray-100 p-4 overflow-y-auto space-y-4">
-        <AgregarClienteForm onAgregado={() => router.refresh()} />
-        <PanelTecnicos tecnicos={tecnicos} onCentrar={handleCentrar} />
+        {rolUsuario === 'supervisor' && (
+          <AgregarClienteForm onAgregado={() => router.refresh()} />
+        )}
+        <PanelTecnicos tecnicos={tecnicos} clientes={clientes} onCentrar={handleCentrar} />
       </aside>
     </main>
   );
 }
 
-// Haversine para ETA
 function calcularDistanciaKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
