@@ -3,14 +3,17 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { MapPin } from 'lucide-react';
+import { useUser } from '@/lib/useUser';
 
 interface Tecnico {
   id: string;
   nombre: string;
+  email: string;
   especialidad: string;
   estado: string;
   lat: number;
   lon: number;
+  slug: string;
 }
 
 interface Cliente {
@@ -23,8 +26,11 @@ interface Cliente {
 
 export default function PerfilTecnicoPage() {
   const { slug } = useParams();
+  const { user } = useUser();
   const [tecnico, setTecnico] = useState<Tecnico | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+
+  const puedeMarcar = user?.email === tecnico?.email;
 
   useEffect(() => {
     const fetchDatos = async () => {
@@ -48,23 +54,26 @@ export default function PerfilTecnicoPage() {
 
   const marcarFinalizado = async (clienteId: number) => {
     const { error } = await supabase
-    .from('clientes')
-    .update({ estado: 'finalizado' })
-    .eq('id', clienteId);
+      .from('clientes')
+      .update({ estado: 'finalizado' })
+      .eq('id', clienteId);
 
-  if (error) {
-    console.error('Error al marcar como finalizado:', error);
-    return;
-  }
+    if (error) {
+      console.error('Error al marcar como finalizado:', error);
+      return;
+    }
 
-  setClientes((prev) =>
-    prev.map((c) =>
-      c.id === clienteId ? { ...c, estado: 'finalizado' } : c
-    )
-   );
+    setClientes((prev) =>
+      prev.map((c) =>
+        c.id === clienteId ? { ...c, estado: 'finalizado' } : c
+      )
+    );
   };
 
   if (!tecnico) return <p className="p-6">Técnico no encontrado</p>;
+
+  const finalizados = clientes.filter((c) => c.estado === 'finalizado').length;
+  const pendientes = clientes.length - finalizados;
 
   return (
     <main className="max-w-4xl mx-auto p-6">
@@ -90,7 +99,7 @@ export default function PerfilTecnicoPage() {
                       Estado: {cliente.estado}
                     </p>
                   </div>
-                  {cliente.estado !== 'finalizado' && (
+                  {cliente.estado !== 'finalizado' && puedeMarcar && (
                     <button
                       onClick={() => marcarFinalizado(cliente.id)}
                       className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
@@ -103,6 +112,13 @@ export default function PerfilTecnicoPage() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-bold mb-2">Estadísticas del técnico</h2>
+        <p>Clientes asignados: {clientes.length}</p>
+        <p>Finalizados: {finalizados}</p>
+        <p>Pendientes: {pendientes}</p>
       </div>
     </main>
   );
