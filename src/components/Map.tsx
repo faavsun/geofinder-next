@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export interface Tecnico {
+  id:string;
   nombre: string;
   especialidad: string;
   estado: string;

@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import Map, { MapHandle, Tecnico, Cliente } from '@/components/Map';
 import PanelTecnicos from '@/components/PanelTecnicos';
 import { supabase } from '@/lib/supabase';
-import { useUser } from '@/lib/useUser';
 import AgregarClienteForm from '@/components/AgregarClienteForm';
+import { useUser } from '@/lib/useUser';
 
 export default function PanelTecnicosPage() {
   const router = useRouter();
@@ -15,13 +15,10 @@ export default function PanelTecnicosPage() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
 
-  // Cargar datos desde Supabase
   useEffect(() => {
     const cargarDatos = async () => {
       const { data: tecnicosData } = await supabase.from('tecnicos').select('*');
       const { data: clientesData } = await supabase.from('clientes').select('*');
-
-      console.log("Clientes en mapa:", clientesData);
 
       setTecnicos(
         (tecnicosData || []).map((t) => {
@@ -31,13 +28,10 @@ export default function PanelTecnicosPage() {
           return { ...t, eta, tiempoTrabajoMin, etaTotal: eta + tiempoTrabajoMin };
         })
       );
-
       setClientes(clientesData || []);
     };
 
-    if (user) {
-      cargarDatos();
-    }
+    if (user) cargarDatos();
   }, [user]);
 
   useEffect(() => {
@@ -59,23 +53,25 @@ export default function PanelTecnicosPage() {
     <main className="flex flex-col md:flex-row h-screen relative">
       <div className="absolute top-4 right-6 text-sm text-right z-10">
         <p className="text-gray-600">Sesión: {user?.email}</p>
-        <button
-          onClick={handleLogout}
-          className="text-blue-600 hover:underline text-sm"
-        >
+        <button onClick={handleLogout} className="text-blue-600 hover:underline text-sm">
           Cerrar sesión
         </button>
       </div>
 
       <section className="w-full md:w-2/3 p-4">
-        <h1 className="text-2xl font-bold mb-4">Panel de Técnicos</h1>
+        <h1 className="text-2xl font-bold mb-4 flex justify-between items-center">
+          Panel de Técnicos
+          <button onClick={() => router.refresh()} className="text-sm text-blue-600 underline">
+            🔄 Recargar
+          </button>
+        </h1>
         <Map ref={mapRef} tecnicos={tecnicos} clientes={clientes} />
       </section>
 
       <aside className="w-full md:w-1/3 bg-gray-100 p-4 overflow-y-auto space-y-4">
-      <AgregarClienteForm onAgregado={() => location.reload()} />
-      <PanelTecnicos tecnicos={tecnicos} onCentrar={handleCentrar} />
-    </aside>
+        <AgregarClienteForm onAgregado={() => router.refresh()} />
+        <PanelTecnicos tecnicos={tecnicos} onCentrar={handleCentrar} />
+      </aside>
     </main>
   );
 }
