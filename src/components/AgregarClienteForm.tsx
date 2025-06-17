@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => void }) {
   const [form, setForm] = useState({ nombre: '', direccion: '' });
@@ -39,7 +40,6 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
       const { nombre, direccion } = form;
       const { lat, lon } = await geocodificarDireccion(direccion);
 
-      // Buscar técnicos disponibles
       const { data: tecnicos, error: errorTecnicos } = await supabase
         .from('tecnicos')
         .select('*')
@@ -48,35 +48,30 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
       if (errorTecnicos) throw errorTecnicos;
       if (!tecnicos || tecnicos.length === 0) throw new Error('No hay técnicos disponibles');
 
-      // Calcular distancia y elegir el más cercano
       const tecnicoMasCercano = tecnicos.reduce((cercano, actual) => {
         const distActual = calcularDistanciaKm(lat, lon, actual.lat, actual.lon);
         const distCercano = calcularDistanciaKm(lat, lon, cercano.lat, cercano.lon);
         return distActual < distCercano ? actual : cercano;
       });
 
-      // Insertar cliente
-      const { error: errorInsert } = await supabase.from('clientes').insert([
-        {
-          nombre,
-          direccion,
-          lat,
-          lon,
-          estado: 'pendiente',
-          tecnico_asignado: tecnicoMasCercano.id,
-        },
-      ]);
+      const { error: errorInsert } = await supabase.from('clientes').insert([{
+        nombre,
+        direccion,
+        lat,
+        lon,
+        estado: 'pendiente',
+        tecnico_asignado: tecnicoMasCercano.id,
+      }]);
 
       if (errorInsert) throw errorInsert;
 
-      // Actualizar estado del técnico a "ocupado"
       await supabase.from('tecnicos').update({ estado: 'ocupado' }).eq('id', tecnicoMasCercano.id);
 
-      alert(`Cliente creado y asignado a ${tecnicoMasCercano.nombre}`);
+      toast.success(`Cliente asignado a ${tecnicoMasCercano.nombre}`);
       setForm({ nombre: '', direccion: '' });
       onAgregado();
     } catch (error: any) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setCargando(false);
     }
