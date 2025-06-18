@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => void }) {
   const [form, setForm] = useState({ nombre: '', direccion: '' });
@@ -39,17 +40,30 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
       const { nombre, direccion } = form;
       const { lat, lon } = await geocodificarDireccion(direccion);
 
-      // Buscar técnicos disponibles
-      const { data: tecnicos, error: errorTecnicos } = await supabase
+      // Obtener técnicos con estado "disponible" y rol técnico
+      const { data: tecnicosDisponibles, error } = await supabase
         .from('tecnicos')
         .select('*')
         .eq('estado', 'disponible');
 
-      if (errorTecnicos) throw errorTecnicos;
-      if (!tecnicos || tecnicos.length === 0) throw new Error('No hay técnicos disponibles');
+      if (error) throw error;
+      if (!tecnicosDisponibles || tecnicosDisponibles.length === 0) throw new Error('No hay técnicos disponibles');
 
-      // Calcular distancia y elegir el más cercano
-      const tecnicoMasCercano = tecnicos.reduce((cercano, actual) => {
+      // Obtener los IDs de técnicos que ya tienen clientes pendientes
+      const { data: clientesPendientes } = await supabase
+        .from('clientes')
+        .select('tecnico_asignado')
+        .eq('estado', 'pendiente');
+
+      const tecnicosOcupados = new Set(clientesPendientes?.map(c => c.tecnico_asignado));
+
+      // Filtrar técnicos que no estén ocupados
+      const tecnicosFiltrados = tecnicosDisponibles.filter(t => !tecnicosOcupados.has(t.id));
+
+      if (tecnicosFiltrados.length === 0) throw new Error('Todos los técnicos disponibles ya están asignados');
+
+      // Elegir técnico más cercano
+      const tecnicoMasCercano = tecnicosFiltrados.reduce((cercano, actual) => {
         const distActual = calcularDistanciaKm(lat, lon, actual.lat, actual.lon);
         const distCercano = calcularDistanciaKm(lat, lon, cercano.lat, cercano.lon);
         return distActual < distCercano ? actual : cercano;
@@ -66,17 +80,13 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
           tecnico_asignado: tecnicoMasCercano.id,
         },
       ]);
-
       if (errorInsert) throw errorInsert;
 
-      // Actualizar estado del técnico a "ocupado"
-      await supabase.from('tecnicos').update({ estado: 'ocupado' }).eq('id', tecnicoMasCercano.id);
-
-      alert(`Cliente creado y asignado a ${tecnicoMasCercano.nombre}`);
+      toast.success(`Cliente asignado a ${tecnicoMasCercano.nombre}`);
       setForm({ nombre: '', direccion: '' });
       onAgregado();
     } catch (error: any) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setCargando(false);
     }

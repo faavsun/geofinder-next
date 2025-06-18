@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Map, { MapHandle, Tecnico, Cliente } from '@/components/Map';
 import PanelTecnicos from '@/components/PanelTecnicos';
 import { supabase } from '@/lib/supabase';
-import AgregarClienteForm from '@/components/AgregarClienteForm';
 import { useUser } from '@/lib/useUser';
 
 export default function PanelTecnicosPage() {
@@ -58,9 +57,6 @@ export default function PanelTecnicosPage() {
       </section>
 
       <aside className="w-full md:w-1/3 bg-gray-100 p-4 overflow-y-auto space-y-4">
-        {rolUsuario === 'supervisor' && (
-          <AgregarClienteForm onAgregado={() => router.refresh()} />
-        )}
         <PanelTecnicos tecnicos={tecnicos} clientes={clientes} onCentrar={handleCentrar} />
       </aside>
     </main>
