@@ -40,32 +40,47 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
       const { nombre, direccion } = form;
       const { lat, lon } = await geocodificarDireccion(direccion);
 
-      const { data: tecnicos, error: errorTecnicos } = await supabase
+      // Obtener técnicos con estado "disponible" y rol técnico
+      const { data: tecnicosDisponibles, error } = await supabase
         .from('tecnicos')
         .select('*')
         .eq('estado', 'disponible');
 
-      if (errorTecnicos) throw errorTecnicos;
-      if (!tecnicos || tecnicos.length === 0) throw new Error('No hay técnicos disponibles');
+      if (error) throw error;
+      if (!tecnicosDisponibles || tecnicosDisponibles.length === 0) throw new Error('No hay técnicos disponibles');
 
-      const tecnicoMasCercano = tecnicos.reduce((cercano, actual) => {
+      // Obtener los IDs de técnicos que ya tienen clientes pendientes
+      const { data: clientesPendientes } = await supabase
+        .from('clientes')
+        .select('tecnico_asignado')
+        .eq('estado', 'pendiente');
+
+      const tecnicosOcupados = new Set(clientesPendientes?.map(c => c.tecnico_asignado));
+
+      // Filtrar técnicos que no estén ocupados
+      const tecnicosFiltrados = tecnicosDisponibles.filter(t => !tecnicosOcupados.has(t.id));
+
+      if (tecnicosFiltrados.length === 0) throw new Error('Todos los técnicos disponibles ya están asignados');
+
+      // Elegir técnico más cercano
+      const tecnicoMasCercano = tecnicosFiltrados.reduce((cercano, actual) => {
         const distActual = calcularDistanciaKm(lat, lon, actual.lat, actual.lon);
         const distCercano = calcularDistanciaKm(lat, lon, cercano.lat, cercano.lon);
         return distActual < distCercano ? actual : cercano;
       });
 
-      const { error: errorInsert } = await supabase.from('clientes').insert([{
-        nombre,
-        direccion,
-        lat,
-        lon,
-        estado: 'pendiente',
-        tecnico_asignado: tecnicoMasCercano.id,
-      }]);
-
+      // Insertar cliente
+      const { error: errorInsert } = await supabase.from('clientes').insert([
+        {
+          nombre,
+          direccion,
+          lat,
+          lon,
+          estado: 'pendiente',
+          tecnico_asignado: tecnicoMasCercano.id,
+        },
+      ]);
       if (errorInsert) throw errorInsert;
-
-      await supabase.from('tecnicos').update({ estado: 'ocupado' }).eq('id', tecnicoMasCercano.id);
 
       toast.success(`Cliente asignado a ${tecnicoMasCercano.nombre}`);
       setForm({ nombre: '', direccion: '' });

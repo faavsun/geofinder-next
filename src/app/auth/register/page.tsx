@@ -8,100 +8,71 @@ export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [nombre, setNombre] = useState('');
-  const [especialidad, setEspecialidad] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // 1. Crear cuenta en auth
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-
-    if (signUpError || !signUpData.user) {
-      setError(signUpError?.message || 'No se pudo registrar');
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+    if (signUpError) {
+      setError(signUpError.message);
       return;
     }
 
-    // 2. Insertar en tabla tecnicos con rol fijo: tecnico
-    const tecnico = {
-      id: signUpData.user.id,
-      nombre,
-      especialidad,
-      estado: 'disponible',
-      lat: -36.82,
-      lon: -73.05,
-      tiempo_trabajo: 15,
-      slug: uuidv4(),
-      rol: 'tecnico', // 👈 SIEMPRE será "tecnico"
-    };
+    const user = data.user;
+    if (user) {
+      const slug = uuidv4();
+      const { error: insertError } = await supabase.from('tecnicos').insert({
+        id: user.id,
+        nombre: email.split('@')[0],
+        especialidad: 'Soporte',
+        estado: 'disponible',
+        lat: -36.82,
+        lon: -73.05,
+        tiempo_trabajo: 15,
+        slug,
+        rol: 'tecnico',
+      });
 
-    const { error: insertError } = await supabase.from('tecnicos').insert(tecnico);
+      if (insertError) {
+        setError('Registro incompleto. Error en la base de datos.');
+        return;
+      }
 
-    if (insertError) {
-      setError('Usuario creado, pero ocurrió un error al guardar los datos del técnico.');
-      return;
+      router.push('/panel-tecnicos');
     }
-
-    router.push('/panel-tecnicos');
   };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Registrarse como Técnico</h1>
-
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Crear cuenta</h1>
         <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Nombre completo</label>
-            <input
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Especialidad</label>
-            <input
-              value={especialidad}
-              onChange={(e) => setEspecialidad(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-md"
-            />
-          </div>
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full mt-1 px-4 py-2 border rounded-md"
+            placeholder="Email"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full mt-1 px-4 py-2 border rounded-md"
+            placeholder="Contraseña"
+          />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
           >
             Registrarse
           </button>
         </form>
-
         <p className="text-sm text-center text-gray-500 mt-4">
           ¿Ya tienes una cuenta?{' '}
           <a href="/auth/login" className="text-blue-600 hover:underline">
