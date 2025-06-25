@@ -25,6 +25,7 @@ export default function Navbar() {
             <Link href="/panel-tecnicos">🗺️ Mapa</Link>
             <Link href="/perfil">👤 Perfiles</Link>
             <Link href="/supervisor">👥 Supervisor</Link>
+            <Link href="/dashboard">👥 Analisis de tecnicos</Link>
             <span className="hidden sm:inline text-gray-600">{user.email}</span>
             <button onClick={logout} className="text-blue-600 hover:underline">Cerrar sesión</button>
           </>

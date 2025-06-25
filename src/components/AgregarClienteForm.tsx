@@ -26,9 +26,9 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * (Math.PI / 180)) *
-              Math.cos(lat2 * (Math.PI / 180)) *
-              Math.sin(dLon / 2) ** 2;
+      Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -40,53 +40,63 @@ export default function AgregarClienteForm({ onAgregado }: { onAgregado: () => v
       const { nombre, direccion } = form;
       const { lat, lon } = await geocodificarDireccion(direccion);
 
-      // Obtener técnicos con estado "disponible" y rol técnico
-      const { data: tecnicosDisponibles, error } = await supabase
+      // Técnicos disponibles sin clientes pendientes
+      const { data: tecnicos } = await supabase
         .from('tecnicos')
         .select('*')
         .eq('estado', 'disponible');
 
-      if (error) throw error;
-      if (!tecnicosDisponibles || tecnicosDisponibles.length === 0) throw new Error('No hay técnicos disponibles');
+      if (!tecnicos || tecnicos.length === 0) throw new Error('No hay técnicos disponibles');
 
-      // Obtener los IDs de técnicos que ya tienen clientes pendientes
-      const { data: clientesPendientes } = await supabase
-        .from('clientes')
-        .select('tecnico_asignado')
-        .eq('estado', 'pendiente');
+      // Filtrar que no tengan cliente pendiente
+      const tecnicosFiltrados = [];
 
-      const tecnicosOcupados = new Set(clientesPendientes?.map(c => c.tecnico_asignado));
+      for (const tecnico of tecnicos) {
+        const { data: clientes } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('tecnico_asignado', tecnico.id)
+          .eq('estado', 'pendiente');
 
-      // Filtrar técnicos que no estén ocupados
-      const tecnicosFiltrados = tecnicosDisponibles.filter(t => !tecnicosOcupados.has(t.id));
+        if (!clientes || clientes.length === 0) {
+          tecnicosFiltrados.push(tecnico);
+        }
+      }
 
-      if (tecnicosFiltrados.length === 0) throw new Error('Todos los técnicos disponibles ya están asignados');
+      if (tecnicosFiltrados.length === 0) throw new Error('Todos los técnicos disponibles tienen clientes asignados');
 
-      // Elegir técnico más cercano
-      const tecnicoMasCercano = tecnicosFiltrados.reduce((cercano, actual) => {
-        const distActual = calcularDistanciaKm(lat, lon, actual.lat, actual.lon);
-        const distCercano = calcularDistanciaKm(lat, lon, cercano.lat, cercano.lon);
-        return distActual < distCercano ? actual : cercano;
-      });
+      // Elegir el más cercano
+      const tecnicoAsignado =
+        tecnicosFiltrados.length === 1
+          ? tecnicosFiltrados[0]
+          : tecnicosFiltrados.reduce((prev, curr) => {
+              const dPrev = calcularDistanciaKm(lat, lon, prev.lat, prev.lon);
+              const dCurr = calcularDistanciaKm(lat, lon, curr.lat, curr.lon);
+              return dCurr < dPrev ? curr : prev;
+            });
 
       // Insertar cliente
-      const { error: errorInsert } = await supabase.from('clientes').insert([
+      const { error: insertError } = await supabase.from('clientes').insert([
         {
           nombre,
           direccion,
           lat,
           lon,
           estado: 'pendiente',
-          tecnico_asignado: tecnicoMasCercano.id,
+          tecnico_asignado: tecnicoAsignado.id,
         },
       ]);
-      if (errorInsert) throw errorInsert;
 
-      toast.success(`Cliente asignado a ${tecnicoMasCercano.nombre}`);
+      if (insertError) throw insertError;
+
+      // Marcar técnico como ocupado
+      await supabase.from('tecnicos').update({ estado: 'ocupado' }).eq('id', tecnicoAsignado.id);
+
+      toast.success(`Cliente asignado a ${tecnicoAsignado.nombre}`);
       setForm({ nombre: '', direccion: '' });
       onAgregado();
     } catch (error: any) {
-      toast.error('Error: ' + error.message);
+      toast.error(error.message || 'Error inesperado');
     } finally {
       setCargando(false);
     }
