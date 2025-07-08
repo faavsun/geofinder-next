@@ -14,13 +14,18 @@ export default function PanelTecnicosPage() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [rolUsuario, setRolUsuario] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ✅ Asegurarse que sólo se ejecute en el cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const cargarDatos = async () => {
       const { data: tecnicosData } = await supabase.from('tecnicos').select('*');
       const { data: clientesData } = await supabase.from('clientes').select('*');
 
-      // 🔧 Comparar por email en vez de ID
       const tecnicoActual = tecnicosData?.find(t => t.email === user?.email);
       console.log('Rol del usuario:', tecnicoActual?.rol);
       setRolUsuario(tecnicoActual?.rol || null);
@@ -41,13 +46,13 @@ export default function PanelTecnicosPage() {
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth/login');
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   const handleCentrar = (nombre: string) => {
     mapRef.current?.centrarEnTecnico(nombre);
   };
 
-  if (loading) return <p className="p-6">Cargando sesión...</p>;
+  if (!isMounted || loading) return <p className="p-6">Cargando sesión...</p>;
 
   return (
     <main className="flex flex-col md:flex-row h-screen relative">
