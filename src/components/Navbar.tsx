@@ -9,7 +9,7 @@ export default function Navbar() {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    router.refresh(); // ✅ fuerza actualización del estado de sesión
+    router.refresh(); // fuerza actualización del estado de sesión
   };
 
   return (
@@ -22,10 +22,10 @@ export default function Navbar() {
       <div className="flex gap-4 items-center text-sm text-gray-700">
         {user ? (
           <>
-            <Link href="/panel-tecnicos">🗺️ Mapa</Link>
-            <Link href="/perfil">👤 Perfiles</Link>
-            <Link href="/supervisor">👥 Supervisor</Link>
-            <Link href="/dashboard">👥 Analisis de tecnicos</Link>
+            <Link href="/panel-tecnicos"> Mapa</Link>
+            <Link href="/perfil"> Perfiles</Link>
+            <Link href="/supervisor"> Supervisor</Link>
+            <Link href="/dashboard"> Analisis de tecnicos</Link>
             <span className="hidden sm:inline text-gray-600">{user.email}</span>
             <button onClick={logout} className="text-blue-600 hover:underline">Cerrar sesión</button>
           </>
