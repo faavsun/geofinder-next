@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Map, { MapHandle, Tecnico, Cliente } from '@/components/Map';
@@ -16,7 +17,6 @@ export default function PanelTecnicosPage() {
   const [rolUsuario, setRolUsuario] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
-  // ✅ Asegurarse que sólo se ejecute en el cliente
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -45,7 +45,9 @@ export default function PanelTecnicosPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!loading && !user) router.push('/auth/login');
+    if (!loading && !user) {
+      router.push('/auth/login');
+    }
   }, [user, loading, router]);
 
   const handleCentrar = (nombre: string) => {
