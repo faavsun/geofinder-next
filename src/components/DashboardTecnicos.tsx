@@ -23,7 +23,7 @@ export default function DashboardTecnicos() {
       const { data: tecnicos } = await supabase.from('tecnicos').select('id, nombre, especialidad, estado, tiempo_trabajo');
       const { data: clientes } = await supabase.from('clientes').select('estado, tecnico_asignado');
 
-      // Distribución por especialidad
+      
       const especialidadMap = new Map<string, number>();
       tecnicos?.forEach(t => {
         especialidadMap.set(t.especialidad, (especialidadMap.get(t.especialidad) || 0) + 1);
