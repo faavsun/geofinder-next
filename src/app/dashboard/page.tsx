@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/lib/useUser';
@@ -10,25 +11,30 @@ export default function DashboardPage() {
   const router = useRouter();
   const [esSupervisor, setEsSupervisor] = useState<boolean | null>(null);
 
+  //  Protección de sesión
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  // 🔎 Verificar si el usuario es supervisor
   useEffect(() => {
     const verificarRol = async () => {
       if (!user) return;
 
-      console.log("user.id:", user.id); // Debug
-
       const { data, error } = await supabase
         .from('tecnicos')
         .select('rol')
-        .eq('id', user.id) // CAMBIO CORRECTO
+        .eq('id', user.id)
         .single();
 
       if (error) {
-        console.error("Error al obtener rol del técnico:", error.message);
+        console.error('Error al obtener rol del técnico:', error.message);
         setEsSupervisor(false);
         return;
       }
 
-      console.log("Datos técnicos:", data); // Debug
       setEsSupervisor(data?.rol === 'supervisor');
     };
 

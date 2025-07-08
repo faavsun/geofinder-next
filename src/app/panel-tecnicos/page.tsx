@@ -10,7 +10,6 @@ import PanelTecnicos from '@/components/PanelTecnicos';
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/lib/useUser';
 
-
 export default function PanelTecnicosPage() {
   const router = useRouter();
   const mapRef = useRef<MapHandle>(null);
@@ -20,6 +19,13 @@ export default function PanelTecnicosPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [rolUsuario, setRolUsuario] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  // 🔐 Protección de sesión
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -36,23 +42,26 @@ export default function PanelTecnicosPage() {
 
       setTecnicos(
         (tecnicosData || []).map((t) => {
-          const distanciaKm = calcularDistanciaKm(t.lat, t.lon, -36.83, -73.06);
-          const eta = Math.max(6, Math.round((distanciaKm / 30) * 60));
+          const clienteAsignado = (clientesData || []).find(
+            (c) => c.tecnico_asignado === t.id && c.estado !== 'finalizado'
+          );
+
+          let eta = 0;
+          if (clienteAsignado) {
+            const distanciaKm = calcularDistanciaKm(t.lat, t.lon, clienteAsignado.lat, clienteAsignado.lon);
+            eta = Math.max(1, Math.round((distanciaKm / 30) * 60)); // Estimación más realista (30 km/h)
+          }
+
           const tiempoTrabajoMin = t.tiempo_trabajo ?? 15;
           return { ...t, eta, tiempoTrabajoMin, etaTotal: eta + tiempoTrabajoMin };
         })
       );
+
       setClientes(clientesData || []);
     };
 
     if (user) cargarDatos();
   }, [user]);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth/login');
-    }
-  }, [user, loading, router]);
 
   const handleCentrar = (nombre: string) => {
     mapRef.current?.centrarEnTecnico(nombre);

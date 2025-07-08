@@ -1,15 +1,26 @@
 'use client';
+
 import { useUser } from '@/lib/useUser';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AgregarClienteForm from '@/components/AgregarClienteForm';
 
 export default function SupervisorPage() {
-  const { user } = useUser();
+  const { user, loading } = useUser();
+  const router = useRouter();
   const [tecnicos, setTecnicos] = useState<any[]>([]);
   const [rol, setRol] = useState<string | null>(null);
 
+  // 🔐 Redirección si no hay sesión
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  // Obtener rol del usuario
   useEffect(() => {
     const verificarRol = async () => {
       if (user?.id) {
@@ -27,6 +38,7 @@ export default function SupervisorPage() {
     verificarRol();
   }, [user]);
 
+  // Cargar técnicos si es supervisor
   useEffect(() => {
     const cargarTecnicos = async () => {
       const { data } = await supabase
@@ -39,10 +51,13 @@ export default function SupervisorPage() {
   }, [rol]);
 
   const actualizarClientes = () => {
-    // Se podría volver a cargar la lista si deseas reflejar algún cambio global
+    // Puedes volver a cargar lista si es necesario
   };
 
-  if (!user || rol !== 'supervisor') return <p className="p-6">Acceso restringido.</p>;
+  // Validación de acceso
+  if (loading || !user || rol !== 'supervisor') {
+    return <p className="p-6">Acceso restringido.</p>;
+  }
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
@@ -55,7 +70,9 @@ export default function SupervisorPage() {
         {tecnicos.map((t) => (
           <li key={t.slug} className="bg-white p-4 shadow rounded border">
             <p className="font-semibold">{t.nombre}</p>
-            <p className="text-sm text-gray-500">{t.especialidad} · {t.estado}</p>
+            <p className="text-sm text-gray-500">
+              {t.especialidad} · {t.estado}
+            </p>
             <Link
               href={`/tecnicos/${t.slug}`}
               className="text-blue-600 text-sm underline mt-2 inline-block"

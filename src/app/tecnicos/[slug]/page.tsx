@@ -1,6 +1,7 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { MapPin } from 'lucide-react';
 import { useUser } from '@/lib/useUser';
@@ -26,11 +27,20 @@ interface Cliente {
 
 export default function PerfilTecnicoPage() {
   const { slug } = useParams();
-  const { user } = useUser();
+  const { user, loading } = useUser();
+  const router = useRouter();
+
   const [tecnico, setTecnico] = useState<Tecnico | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
 
   const puedeMarcar = user?.email === tecnico?.email;
+
+  // 🔐 Redirigir si no hay sesión activa
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     const fetchDatos = async () => {
@@ -49,8 +59,8 @@ export default function PerfilTecnicoPage() {
       setClientes(clientesData || []);
     };
 
-    if (slug) fetchDatos();
-  }, [slug]);
+    if (slug && user) fetchDatos();
+  }, [slug, user]);
 
   const marcarFinalizado = async (clienteId: number) => {
     const { error } = await supabase
@@ -70,7 +80,7 @@ export default function PerfilTecnicoPage() {
     );
   };
 
-  if (!tecnico) return <p className="p-6">Técnico no encontrado</p>;
+  if (!user || !tecnico) return <p className="p-6">Técnico no encontrado</p>;
 
   const finalizados = clientes.filter((c) => c.estado === 'finalizado').length;
   const pendientes = clientes.length - finalizados;
