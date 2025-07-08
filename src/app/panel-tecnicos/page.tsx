@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Map, { MapHandle, Tecnico, Cliente } from '@/components/Map';
+import dynamic from 'next/dynamic';
+const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+
+import type { MapHandle, Tecnico, Cliente } from '@/components/Map';
 import PanelTecnicos from '@/components/PanelTecnicos';
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/lib/useUser';
+
 
 export default function PanelTecnicosPage() {
   const router = useRouter();
