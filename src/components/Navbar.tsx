@@ -23,7 +23,6 @@ export default function Navbar() {
         {user ? (
           <>
             <Link href="/panel-tecnicos"> Mapa</Link>
-            <Link href="/perfil"> Perfiles</Link>
             <Link href="/supervisor"> Supervisor</Link>
             <Link href="/dashboard"> Analisis de tecnicos</Link>
             <span className="hidden sm:inline text-gray-600">{user.email}</span>
